@@ -5,7 +5,8 @@ Set of small command line tools that goal is to make life a little bit easier fo
 ## Features
 * nmap, traceroute and openssl without installing a lot of libraries
 * IP Address listing - Easily list all IP addresses
-`$ $(make echo-run) wf-ip-list`
+
+`$ wf wf-ip-list`
 ```
 127.0.0.1
 192.168.0.192
@@ -14,7 +15,8 @@ Set of small command line tools that goal is to make life a little bit easier fo
 (...)
 ```
 * Network Interface listing - Easily list all network interface
-`$ $(make echo-run) wf-if-list`
+
+`$ wf wf-if-list`
 ```
 lo
 enp3s0
@@ -25,7 +27,8 @@ veth18358a3@if214
 (...)
 ```
 * Simple network data table ( easier to understand than `ip` command )
-`$ $(make echo-run) wf-net-list`
+
+`$ wf wf-net-list`
 ```
 ==========================================
 |  # |         interface |            ip |
@@ -40,7 +43,8 @@ veth18358a3@if214
 ==========================================
 ```
 * Quickly scan all your local network interfaces with `nmap`
-`$ $(make echo-run) wf-scanme`
+
+`$ wf wf-scanme`
 ```
 Starting Nmap 7.60 ( https://nmap.org ) at 2018-06-15 16:00 UTC
 Nmap scan report for 192.168.0.192
@@ -55,7 +59,8 @@ PORT     STATE    SERVICE    VERSION
 (...)
 ```
 * Basic mail server check
-`$ $(make echo-run) wf-mail-ssl-check --mx smtp-relay.gmail.com -t 2 -s2 -v --mta-port 26`
+
+`$ wf wf-mail-ssl-check --mx smtp-relay.gmail.com -t 2 -s2 -v --mta-port 26`
 ```
 [test #1][command]: timeout -t 2 openssl s_client -starttls smtp -crlf -connect smtp-relay.gmail.com:26 < /tmp/sslquit 2>&1
 [test #1][result]: Failed. Timeout.
@@ -78,6 +83,6 @@ Find latest release `git tags`
 Checkout to it / make it active `git checkout <tag>`
 make docker image `make build`
 
-Not either enter the container `make run` or `$(make echo-run) wf-info`
+Now either enter the container `make run` or run some commands `$(make echo-run) wf-info`
 For the latter I also recommend making an alias `alias wf="$(make -f $(pwd)/Makefile echo-run)"`
-Which will allow you to use those tools anywheere `wf wf-info`
+Which will allow you to use those tools anywheere `wf wf-info`, `wf nmap` or `wf traceroute` ( Don't forget to save that alias to your ~/.profile, ~/.bashrc or ~/.bash_profile )
