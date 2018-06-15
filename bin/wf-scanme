@@ -1,0 +1,29 @@
+#!/bin/sh
+
+print_short_description() {
+	echo -n "Scan all your network interfaces."
+}
+
+parse_options() {
+	while [ "$1" != "" ]; do
+    		case $1 in
+			-s | --short-description)
+				print_short_description
+				exit 0
+				;;
+			*)
+				echo -n "Invalid option '$1'"
+				exit 1
+				;;
+		esac
+	done
+}
+
+parse_options "$@"
+
+CMD_DIR=$(dirname $(readlink -f "$0"))
+IFCMD="${CMD_DIR}/wf-ip-list"
+
+for ip in $($IFCMD); do
+	nmap -A $ip;
+done

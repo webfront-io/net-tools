@@ -1,0 +1,15 @@
+#!/bin/sh
+
+cmds() {
+	echo $COMMANDS | tr ' ' '\n' | sort
+}
+
+export PATH=$PATH:$(dirname $(readlink -f "$0"))
+
+COMMANDS="wf-if-list wf-ip-list wf-net-list wf-mail-ssl-check wf-scanme"
+MAX1=$(cmds | wc -L)
+PATTERN=" %${MAX1}s : %s\n"
+
+for cmd in $(cmds); do
+	printf "$PATTERN" $cmd "$($cmd --short-description)"
+done

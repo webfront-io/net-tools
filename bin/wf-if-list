@@ -1,0 +1,21 @@
+#!/bin/sh
+
+print_short_description() {
+        echo -n "Display list of network interfaces"
+}
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -s | --short-description)
+		print_short_description
+		exit 0
+		;;
+	*)
+		echo -n "Invalid option '$1'"
+		exit 1
+		;;
+    esac
+done
+
+ip a | grep -E '^[0-9]+' | awk '{ print $2 }' | sed 's/:$//'
+

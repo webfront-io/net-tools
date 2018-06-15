@@ -1,0 +1,81 @@
+#!/bin/sh
+
+ifs() {
+	echo $IFLIST | tr " " "\n"
+}
+ips() {
+	echo $IPLIST | tr " " "\n"
+}
+get_ip() {
+	ip addr show $1 2>/dev/null | grep 'inet ' | sed -e 's/^[[:space:]]*//' | awk '{ print $2 }' | sed 's/\/[0-9]*$//'
+}
+get_ips() {
+	for if in $(ifs); do
+		get_ip $if;
+	done
+}
+print_sep() {
+	seq -s= $WIDTH|tr -d '[:digit:]'
+}
+print_short_description() {
+	echo -n "Display list of network interfaces and their IPv4 addresses. See \"--help for more\"."
+}
+print_usage() {
+	cat <<'EOF' | sed 's/^\t\t//'
+		wf-ip-list [-sih]
+		Options:
+			-s | --short-description	Show command short description
+			-i | --ips-only			Print IP addresses of this workstation only ( IPv4 )
+			-h | --help			Display this help message
+EOF
+}
+parse_options() {
+	while [ "$1" != "" ]; do
+    		case $1 in
+			-s | --short-description)
+				print_short_description
+				exit 0
+				;;
+			-i | --ips-only)
+				get_ips
+				exit 0
+				;;
+			-h | --help)
+				print_usage
+				exit 0
+				;;
+			*)
+				echo -n "Invalid option '$1'"
+				exit 1
+				;;
+		esac
+	done
+}
+
+export PATH=$PATH:$(dirname $(readlink -f "$0"))
+# get all network interfaces
+IFLIST=$(wf-if-list)
+IPLIST=$(get_ips)
+
+parse_options "$@"
+
+MAX1=$(ifs | wc -l | wc -L)
+MAX2=$(ifs | wc -L)
+MAX3=$(ips | wc -L)
+WIDTH=$(($MAX1 + $MAX2 + $MAX3 + 11))
+PATTERN="| %${MAX1}s | %${MAX2}s | %${MAX3}s |\n"
+
+# header
+print_sep
+printf "$PATTERN" "#" "interface" "ip"
+print_sep
+
+# body
+i=1
+for interface in `ifs`; do
+	printf "$PATTERN" $(($i)) $interface $(get_ip $interface)
+	i=$(($i + 1))
+done
+
+# footer
+print_sep

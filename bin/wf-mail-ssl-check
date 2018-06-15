@@ -1,0 +1,170 @@
+#!/bin/sh
+
+print_short_description() {
+        echo -n "Tests mail server using openssl commands. See \"--help for more\"."
+}
+print_help() {
+	cat <<'EOF' | sed 's/^\t\t//'
+		wf-mail-ssl-check -[smtvvh]
+		Exits with 1 if any test fails or 0 otherwise.
+		Options:
+			-m  | --mx <domain>		Required. Address of the mail server.
+			-s  | --short-description	Prints short command description and exits.
+			-t  | --timeout	<seconds>	Default 10. Time after test should be terminated.
+			-v  | --verbose			More verbose output.
+			-vv | --very-verbose		Even more verbose output.
+			-c  | --client-port <port> 	Default 587. Port number that mail client submits emails
+							( ie. Outlook ) connects to. MUAs ( Mail User Agents ) RFC 6409
+			-s  | --smtps-port <port>	Default 465. Deprecated port that MUAs would communicate over TLS
+			-e  | --mta-port <port>		Default 25. MTA Exchange port port. Mail Transfer Agents
+							use this port to communicate with each other.
+			-s1 | --skip-mta-test		Don't execute mta-port test.
+			-s2 | --skip-smtps-test		Don't execute smtps port test.
+			-s3 | --skip-client-test	Don't execute client port test.
+EOF
+}
+
+VERBOSE=false
+VERY_VERBOSE=false
+TERMINATE=false
+TIMEOUT=10
+
+MTA_PORT=25
+SMTPS_PORT=465
+CLIENT_PORT=587
+
+SKIP_TEST1=false
+SKIP_TEST2=false
+SKIP_TEST3=false
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -s | --short-description)
+		print_short_description
+		exit 0
+		;;
+	-m | --mx)
+		shift
+		MX=$1
+		if [ -z $MX ]; then
+        		echo "Missing <domain> value for -m/--mx option" >&2
+			TERMINATE=true
+        		break 2
+		fi
+		;;
+	-c | --client-port)
+		shift
+		CLIENT_PORT=$1
+		;;
+	-s | --smtps-port)
+		shift
+		SMTPS_PORT=$1
+		;;
+	-e | --mta-port)
+		shift
+		MTA_PORT=$1
+		;;
+	-t | --timeout)
+		shift
+		TIMEOUT=$1
+		;;
+	-s1 | --skip-mta-test)
+		SKIP_TEST1=true
+		;;
+	-s2 | --skip-smtps-test)
+		SKIP_TEST2=true
+		;;
+	-s3 | --skip-client-test)
+		SKIP_TEST3=true
+		;;
+	-v | --verbose)
+		VERBOSE=true
+		;;
+	-vv | --very-verbose)
+		VERBOSE=true
+		VERY_VERBOSE=true
+		;;
+	-h | --help)
+		print_help
+		exit 0
+		;;
+        *)
+		echo -n "Invalid option '$1'"
+		exit 1
+		;;
+    esac
+    shift
+done
+
+if [ $TERMINATE = true ]; then
+	exit 2
+fi
+
+if [ -z $MX ]; then
+	echo "Mail server address must not be empty \"--mx ${MX}\" given" >&2
+	exit 3
+fi
+
+echo $TIMEOUT | egrep -q '^[0-9]+$'
+if [ $? -ne 0 ]; then
+	echo "Timeout must be a numeric value" >&2
+	exit 4
+fi
+
+SSL_QUIT=/tmp/sslquit
+NUM_OF_TESTS=3
+TEST1="timeout -t $TIMEOUT openssl s_client -starttls smtp -crlf -connect ${MX}:${MTA_PORT} < $SSL_QUIT 2>&1"
+TEST2="timeout -t $TIMEOUT openssl s_client -showcerts -connect ${MX}:${SMTPS_PORT} < $SSL_QUIT 2>&1"
+TEST3="timeout -t $TIMEOUT openssl s_client -starttls smtp -crlf -connect ${MX}:${CLIENT_PORT} < $SSL_QUIT 2>&1"
+TEST1_FAILED=false
+TEST2_FAILED=false
+TEST3_FAILED=false
+
+echo 'QUIT' > $SSL_QUIT
+
+for i in $(seq $NUM_OF_TESTS); do
+	TEST_NAME="TEST${i}"
+	SKIP=$(eval "echo \$SKIP_${TEST_NAME}")
+	TEST_CMD=$(eval "echo \$$TEST_NAME")
+
+	if [ $VERBOSE = true ]; then
+		echo "[test #$i][command]: $TEST_CMD"
+	fi
+
+	if [ $SKIP = true ]; then
+                echo "[test #$i] Skipped"
+		continue
+        fi
+
+	echo -n "[test #$i][result]: "
+	OUT=$(eval "$TEST_CMD")
+	RES=$?
+
+	if [ $RES != 0 ]; then
+		eval "TEST${i}_FAILED=true"
+		echo -n "Failed. "
+		if [ $RES = 143 ]; then
+			echo -n "Timeout."
+		fi
+		echo ""
+	else
+		echo "Ok."
+	fi
+
+	if [ $VERY_VERBOSE = true ]; then
+                echo "[test #$i][code]: $RES"
+                echo "[test #$i][output]"
+                echo "$OUT"
+                echo "[test #$i][/output]"
+        fi
+done
+
+FAILED=false
+for i in $(seq $NUM_OF_TESTS); do
+	FAILED=$(eval "echo \$TEST${i}_FAILED")
+	if [ $FAILED = true  ]; then
+		exit 1
+	fi
+done
+
+exit 0
