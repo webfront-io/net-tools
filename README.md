@@ -69,7 +69,7 @@ PORT     STATE    SERVICE    VERSION
 [test #3][command]: timeout -t 2 openssl s_client -starttls smtp -crlf -connect smtp-relay.gmail.com:587 < /tmp/sslquit 2>&1
 [test #3][result]: Ok.
 ```
-* For more see TODO.md
+* For more see [TODO.md](./TODO.md)
 - - -
 
 ## Running
